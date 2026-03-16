@@ -75,7 +75,9 @@ export default function HistoryPage() {
     setLoading(true)
     setFetchError(false)
     try {
-      const res = await fetch('/api/analyses')
+      const sid = typeof window !== 'undefined' ? localStorage.getItem('hs_session_id') : null
+      const params = sid ? `?session_id=${encodeURIComponent(sid)}` : ''
+      const res = await fetch(`/api/analyses${params}`)
       if (!res.ok) throw new Error('Fetch failed')
       const data = await res.json()
       if (Array.isArray(data)) setAllAnalyses(data)
@@ -116,24 +118,6 @@ export default function HistoryPage() {
     } catch {
       // silent
     }
-  }, [])
-
-  const handleRowDelete = useCallback(async (a: HsAnalysis) => {
-    try {
-      const res = await fetch('/api/analyses', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: a.id }),
-      })
-      if (res.ok) setAllAnalyses((prev) => prev.filter((x) => x.id !== a.id))
-    } catch {
-      // silent
-    }
-  }, [])
-
-  const handleDrawerDelete = useCallback((id: string) => {
-    setAllAnalyses((prev) => prev.filter((a) => a.id !== id))
-    setSelectedAnalysis(null)
   }, [])
 
   const handleDrawerClose = useCallback(() => { setSelectedAnalysis(null) }, [])
@@ -194,7 +178,6 @@ export default function HistoryPage() {
               analyses={filteredAnalyses}
               onRowClick={handleRowClick}
               onDownload={handleRowDownload}
-              onDelete={handleRowDelete}
               isLoading={loading}
               isFiltered={hasActiveFilters(filters)}
               onClearFilters={handleClearFilters}
@@ -205,11 +188,9 @@ export default function HistoryPage() {
         </main>
       </div>
 
-      {/* Drawer */}
       <AnalysisDrawer
         analysis={selectedAnalysis}
         onClose={handleDrawerClose}
-        onDelete={handleDrawerDelete}
       />
     </>
   )

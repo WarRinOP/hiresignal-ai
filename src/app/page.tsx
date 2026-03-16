@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { HsAnalysis } from '@/lib/supabase'
+import { getSessionId, getStoredRemaining, setStoredRemaining, MAX_ANALYSES } from '@/lib/session'
 import ResumeUpload from '@/components/analyzer/ResumeUpload'
 import JobDescInput, { SAMPLE_RESUME, SAMPLE_JD } from '@/components/analyzer/JobDescInput'
 import ResultsPanel from '@/components/analyzer/ResultsPanel'
@@ -36,7 +37,6 @@ function EmptyResultsPlaceholder() {
 function AnalyzingSkeleton() {
   return (
     <div className="space-y-4 animate-pulse">
-      {/* Card 1 — Match overview skeleton */}
       <div className="bg-bg-surface border border-border-default rounded-xl p-6">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
           <div className="w-[120px] h-[120px] rounded-full bg-bg-surface2 flex-shrink-0" />
@@ -48,14 +48,12 @@ function AnalyzingSkeleton() {
           </div>
         </div>
       </div>
-      {/* Card 2 skeleton */}
       <div className="bg-bg-surface border border-border-default rounded-xl p-6 space-y-3">
         <div className="h-4 w-32 rounded bg-bg-surface2" />
         <div className="grid grid-cols-2 gap-2">
           {[1,2,3,4,5,6].map(i => <div key={i} className="h-7 rounded-full bg-bg-surface2" />)}
         </div>
       </div>
-      {/* Card 3 skeleton */}
       <div className="bg-bg-surface border border-border-default rounded-xl p-6 space-y-3">
         <div className="h-4 w-40 rounded bg-bg-surface2" />
         <div className="grid grid-cols-2 gap-3">
@@ -63,7 +61,6 @@ function AnalyzingSkeleton() {
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-3 rounded bg-bg-surface2" />)}</div>
         </div>
       </div>
-      {/* Status label */}
       <div className="flex items-center justify-center gap-2 py-2">
         <svg className="animate-spin w-4 h-4 text-accent" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -84,6 +81,8 @@ export default function AnalyzerPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<HsAnalysis | null>(null)
+  const [remaining, setRemaining] = useState(() => getStoredRemaining())
+  const [sessionId] = useState(() => getSessionId())
 
   const handleLoadSample = () => {
     setCandidateName('Sarah Chen')
@@ -98,6 +97,7 @@ export default function AnalyzerPage() {
     if (!resumeText.trim()) { setError('Please upload a PDF or paste the resume text.'); return }
     if (!roleTitle.trim()) { setError('Role title is required.'); return }
     if (!jobDescription.trim()) { setError('Job description is required.'); return }
+    if (remaining <= 0) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
 
     setIsAnalyzing(true)
     setError(null)
@@ -113,10 +113,26 @@ export default function AnalyzerPage() {
           roleTitle: roleTitle.trim(),
           companyName: companyName.trim() || undefined,
           jobDescription: jobDescription.trim(),
+          session_id: sessionId,
         }),
       })
       const data = await res.json()
+
+      if (res.status === 429) {
+        setRemaining(0)
+        setStoredRemaining(0)
+        setError(data.error || `You've used all ${MAX_ANALYSES} free analyses.`)
+        return
+      }
+
       if (!res.ok) throw new Error(data.error || `Analysis failed (${res.status})`)
+
+      // Update remaining
+      if (typeof data.remaining === 'number') {
+        setRemaining(data.remaining)
+        setStoredRemaining(data.remaining)
+      }
+
       setResult(data as HsAnalysis)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -152,15 +168,24 @@ export default function AnalyzerPage() {
               <span className="hidden sm:block text-border-default">·</span>
               <span className="hidden sm:block text-xs text-text-muted font-mono truncate">AI Recruitment Intelligence</span>
             </div>
-            <Link
-              href="/history"
-              className="text-xs text-text-muted hover:text-accent transition-colors flex items-center gap-1 flex-shrink-0 ml-4"
-            >
-              <span className="hidden xs:inline">View </span>History
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
+            <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+              <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+                remaining > 0
+                  ? 'text-text-muted border-border-default bg-bg-surface2/50'
+                  : 'text-red-400 border-red-400/30 bg-red-400/10'
+              }`}>
+                {remaining > 0 ? `${remaining} left` : 'Limit reached'}
+              </span>
+              <Link
+                href="/history"
+                className="text-xs text-text-muted hover:text-accent transition-colors flex items-center gap-1"
+              >
+                <span className="hidden xs:inline">View </span>History
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -235,6 +260,10 @@ export default function AnalyzerPage() {
           </div>
         </main>
       </div>
+
+      <footer className="border-t border-border-default py-4 text-center text-xs text-text-muted">
+        Built by <span className="text-text-secondary font-medium">Abrar Tajwar Khan</span>
+      </footer>
 
       <ToastContainer />
     </>

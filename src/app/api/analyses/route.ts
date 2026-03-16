@@ -6,11 +6,17 @@ export async function GET(req: NextRequest) {
   const recommendation = searchParams.get('recommendation')
   const search = searchParams.get('search')
   const period = searchParams.get('period') // 'week' | 'month' | 'all'
+  const sessionId = searchParams.get('session_id')
 
   let query = supabaseAdmin
     .from('hs_analyses')
     .select('*')
     .order('created_at', { ascending: false })
+
+  // ── Scope to session ────────────────────────────────────────────────────
+  if (sessionId) {
+    query = query.eq('session_id', sessionId)
+  }
 
   // ── Filter: recommendation ───────────────────────────────────────────────
   if (recommendation && ['Hire', 'Consider', 'Pass'].includes(recommendation)) {
@@ -36,7 +42,6 @@ export async function GET(req: NextRequest) {
   }
 
   // ── Filter: text search (client-side after fetch) ────────────────────────
-  // Supabase ilike can't search two columns easily without or() — doing it here
   let results = data ?? []
   if (search && search.trim().length > 0) {
     const q = search.trim().toLowerCase()
@@ -51,6 +56,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  // Block deletion in demo mode
+  if (process.env.DEMO_MODE === 'true') {
+    return NextResponse.json(
+      { error: 'Deletion disabled in demo mode.' },
+      { status: 403 }
+    )
+  }
+
   let body: { id?: string }
   try {
     body = await req.json()
@@ -64,7 +77,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 })
   }
 
-  // Check exists first
   const { data: existing } = await supabaseAdmin
     .from('hs_analyses')
     .select('id')

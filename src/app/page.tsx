@@ -170,27 +170,37 @@ export default function AnalyzerPage() {
               <span className="hidden sm:block text-border-default">·</span>
               <span className="hidden sm:block text-xs text-text-muted font-mono truncate">AI Recruitment Intelligence</span>
             </div>
-            <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-              <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
+            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+              {/* Remaining badge — short on mobile */}
+              <span className={`text-xs font-mono px-2 py-0.5 rounded-full border flex-shrink-0 ${
                 remaining > 0
                   ? 'text-text-muted border-border-default bg-bg-surface2/50'
                   : 'text-red-400 border-red-400/30 bg-red-400/10'
               }`}>
-                {remaining > 0 ? `${remaining} left` : 'Limit reached'}
+                {remaining > 0 ? (
+                  <><span className="hidden sm:inline">Analyses </span>{remaining}<span className="hidden sm:inline"> left</span><span className="sm:hidden"> left</span></>
+                ) : (
+                  <><span className="hidden sm:inline">Limit reached</span><span className="sm:hidden">❌</span></>
+                )}
               </span>
+
+              {/* How It Works — icon on mobile, text+icon on desktop */}
               <button
                 onClick={() => setShowModal(true)}
-                className="hidden sm:flex items-center gap-1.5 text-xs text-text-muted hover:text-accent border border-border-default hover:border-accent/30 px-2.5 py-1 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent border border-border-default hover:border-accent/30 px-2 py-1.5 rounded-lg transition-colors"
+                title="How It Works"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                How It Works
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="hidden sm:inline">How It Works</span>
               </button>
+
+              {/* History — icon on mobile, text on desktop */}
               <Link
                 href="/history"
-                className="text-xs text-text-muted hover:text-accent transition-colors flex items-center gap-1"
+                className="flex items-center gap-1 text-xs text-text-muted hover:text-accent transition-colors"
               >
-                <span className="hidden xs:inline">View </span>History
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <span className="hidden sm:inline">History</span>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>

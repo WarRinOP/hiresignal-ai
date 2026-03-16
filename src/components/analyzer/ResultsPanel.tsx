@@ -48,8 +48,8 @@ export default function ResultsPanel({ result, onReset }: ResultsPanelProps) {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Download failed:', err)
+    } catch {
+      // silent — download failure doesn't need user-visible error
     } finally {
       setDownloading(false)
     }
@@ -61,12 +61,16 @@ export default function ResultsPanel({ result, onReset }: ResultsPanelProps) {
       className="space-y-4 animate-fade-in-up"
       style={{ animationDuration: '400ms', animationFillMode: 'both' }}
     >
-      {/* Card 1 — Match Overview */}
+      {/* Card 1 — Match Overview: stacks on mobile, row on sm+ */}
       <div className="bg-bg-surface border border-border-default rounded-xl p-6">
-        <div className="flex items-start gap-6">
-          <MatchRing score={result.match_score} size={120} />
-          <div className="flex-1 min-w-0">
-            <RecommendationBadge recommendation={result.recommendation} />
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
+          <div className="flex-shrink-0">
+            <MatchRing score={result.match_score} size={120} />
+          </div>
+          <div className="flex-1 min-w-0 text-center sm:text-left">
+            <div className="flex justify-center sm:justify-start">
+              <RecommendationBadge recommendation={result.recommendation} />
+            </div>
             <p className="mt-3 text-sm text-text-secondary leading-relaxed">
               {result.recommendation_reason}
             </p>

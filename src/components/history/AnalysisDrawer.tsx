@@ -80,8 +80,8 @@ export default function AnalysisDrawer({ analysis, onClose, onDelete }: Analysis
       document.body.appendChild(a); a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-    } catch (err) {
-      console.error('Download error:', err)
+    } catch {
+      // silent
     } finally {
       setDownloading(false)
     }
@@ -99,8 +99,8 @@ export default function AnalysisDrawer({ analysis, onClose, onDelete }: Analysis
       if (!res.ok) throw new Error('Delete failed')
       onDelete(analysis.id)
       onClose()
-    } catch (err) {
-      console.error('Delete error:', err)
+    } catch {
+      // silent
     } finally {
       setDeleting(false)
     }

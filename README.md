@@ -1,99 +1,86 @@
 # HireSignal — AI Recruitment Intelligence
 
-> **Built by [Abrar Tajwar Khan](https://www.fiverr.com) — available for custom AI development on Fiverr**
+> Match resumes to job descriptions instantly.  
+> Get scores, skills gaps, and improvements powered by Claude AI.
 
-HireSignal is an AI-powered recruitment intelligence tool. Upload a candidate's resume + paste a job description → Claude analyzes the match → returns a percentage score, matched skills, missing skills, keyword gaps, bullet point rewrites, and a full candidate report. Every analysis is saved to a history dashboard for comparing candidates across roles.
+## Live Demo
 
----
+[Deploy to Vercel to get your URL]
+
+## Screenshots
+
+<!-- Add after deployment -->
 
 ## Features
 
-- **Resume Upload** — drag-and-drop PDF or paste text directly
-- **AI Match Analysis** — Claude scores the fit 0–100% with detailed breakdown
-- **Skills Breakdown** — matched skills (✓) and missing skills (✗) side by side
-- **Keyword Gaps** — important JD keywords absent from the resume
-- **Bullet Rewriter** — before/after rewrites of the weakest resume bullets
-- **Hire / Consider / Pass** — clear recommendation with reasoning
-- **Report Download** — clean text report for sharing
-- **History Dashboard** — all past analyses, filterable by role and recommendation
+- **Match Score** — 0–100% compatibility ring with animated count-up
+- **Skills Breakdown** — matched vs missing skills with green/red pills
+- **Keyword Gaps** — ATS optimisation suggestions (or green success state)
+- **Bullet Rewriter** — AI-improved resume bullet points with reasoning
+- **Hire / Consider / Pass** recommendation with confidence rationale
+- **Analysis History** — full dashboard with filters, search, and pagination
+- **Report Download** — formatted `.txt` report for every analysis
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
+|---|---|
 | Framework | Next.js 14 (App Router) |
-| Styling | Tailwind CSS |
+| AI Model | Claude 3.5 Haiku |
 | Database | Supabase (PostgreSQL) |
-| AI | Claude 3.5 Haiku (Anthropic) |
-| PDF Parsing | pdf-parse |
-| Deployment | Vercel |
+| Styling | Tailwind CSS |
+| Fonts | Plus Jakarta Sans + JetBrains Mono |
+| Deploy | Vercel |
 
-## Quick Start
+## Architecture
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/your-username/hiresignal-ai.git
-cd hiresignal-ai
-
-# 2. Install dependencies
-npm install
-
-# 3. Set up environment variables
-cp .env.local.example .env.local
-# Fill in your Supabase and Anthropic keys
-
-# 4. Run the development server
-npm run dev
+```
+User uploads resume + JD
+        ↓
+   /api/analyze  (POST)
+        ↓
+Claude 3.5 Haiku → structured JSON response
+        ↓
+Parsed + saved to hs_analyses (Supabase)
+        ↓
+ResultsPanel renders match score + breakdown
+        ↓
+History dashboard updates with new record
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the app.
+## Setup
+
+1. **Clone** — `git clone https://github.com/WarRinOP/hiresignal-ai`
+2. **Install** — `npm install`
+3. **Environment** — copy `.env.local.example` to `.env.local` and fill in values
+4. **Run** — `npm run dev` → open [http://localhost:3000](http://localhost:3000)
 
 ## Environment Variables
 
 | Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key (public) |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-only) |
 | `ANTHROPIC_API_KEY` | Anthropic API key for Claude |
 
-## Architecture
+## Supabase Tables
 
-```mermaid
-graph TD
-    A[User] -->|Upload PDF / Paste Resume| B[ResumeUpload Component]
-    A -->|Paste Job Description| C[JobDescInput Component]
-    B --> D[/api/analyze]
-    C --> D
-    D -->|pdf-parse| E[Extract Resume Text]
-    E -->|Claude 3.5 Haiku| F[AI Analysis]
-    F -->|Save| G[(Supabase hs_analyses)]
-    F --> H[ResultsPanel]
-    H --> I[MatchRing Score]
-    H --> J[Skills Breakdown]
-    H --> K[Bullet Rewriter]
-    H --> L[Download Report]
-    G --> M[/history Dashboard]
-```
+- `hs_analyses` — all analysis records (score, skills, rewrites, recommendation)
+- `hs_settings` — user preferences (default role, company name)
 
-## Database Schema
+## API Routes
 
-All tables use the `hs_` prefix on the shared Supabase project.
-
-### `hs_analyses`
-Stores every resume–JD analysis with full Claude output.
-
-### `hs_settings`
-Single-row settings table for default role/company configuration.
-
-## Demo Scenario
-
-1. Upload a Software Engineer resume PDF
-2. Paste a Google SWE job description
-3. Click **Analyze Match →**
-4. See: 74% match ring animate → skills gap → bullet rewrites → download report
-5. Switch to History to compare across candidates
+| Route | Method | Description |
+|---|---|---|
+| `/api/analyze` | POST | Run analysis via Claude, save to DB |
+| `/api/analyses` | GET | Fetch all analyses with optional filters |
+| `/api/analyses` | DELETE | Delete an analysis by ID |
+| `/api/report` | GET | Generate `.txt` report download |
+| `/api/parse-pdf` | POST | Extract text from uploaded PDF |
+| `/api/settings` | GET / PUT | Read or update user settings |
 
 ---
 
-*HireSignal is a portfolio project demonstrating AI-powered recruitment tooling. Built with Next.js, Supabase, and Claude API.*
+Built by **Abrar Tajwar Khan**  
+Available for custom AI development on [Fiverr](https://www.fiverr.com)

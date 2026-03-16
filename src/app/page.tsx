@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { HsAnalysis } from '@/lib/supabase'
 import { getSessionId, getStoredRemaining, setStoredRemaining, MAX_ANALYSES } from '@/lib/session'
+import { HowItWorksModal } from '@/components/HowItWorksModal'
 import ResumeUpload from '@/components/analyzer/ResumeUpload'
 import JobDescInput, { SAMPLE_RESUME, SAMPLE_JD } from '@/components/analyzer/JobDescInput'
 import ResultsPanel from '@/components/analyzer/ResultsPanel'
@@ -83,6 +84,7 @@ export default function AnalyzerPage() {
   const [result, setResult] = useState<HsAnalysis | null>(null)
   const [remaining, setRemaining] = useState(() => getStoredRemaining())
   const [sessionId] = useState(() => getSessionId())
+  const [showModal, setShowModal] = useState(false)
 
   const handleLoadSample = () => {
     setCandidateName('Sarah Chen')
@@ -176,6 +178,13 @@ export default function AnalyzerPage() {
               }`}>
                 {remaining > 0 ? `${remaining} left` : 'Limit reached'}
               </span>
+              <button
+                onClick={() => setShowModal(true)}
+                className="hidden sm:flex items-center gap-1.5 text-xs text-text-muted hover:text-accent border border-border-default hover:border-accent/30 px-2.5 py-1 rounded-lg transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                How It Works
+              </button>
               <Link
                 href="/history"
                 className="text-xs text-text-muted hover:text-accent transition-colors flex items-center gap-1"
@@ -266,6 +275,7 @@ export default function AnalyzerPage() {
       </footer>
 
       <ToastContainer />
+      {showModal && <HowItWorksModal onClose={() => setShowModal(false)} />}
     </>
   )
 }

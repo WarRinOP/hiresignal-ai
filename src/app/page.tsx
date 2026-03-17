@@ -88,6 +88,7 @@ export default function AnalyzerPage() {
   const [adminCode, setAdminCode] = useState('')
   const [adminError, setAdminError] = useState('')
   const [adminLoading, setAdminLoading] = useState(false)
+  const [simBlock, setSimBlock] = useState(false)
   const [sessionId] = useState(() => getSessionId())
   const [showModal, setShowModal] = useState(false)
 
@@ -129,7 +130,7 @@ export default function AnalyzerPage() {
     if (!resumeText.trim()) { setError('Please upload a PDF or paste the resume text.'); return }
     if (!roleTitle.trim()) { setError('Role title is required.'); return }
     if (!jobDescription.trim()) { setError('Job description is required.'); return }
-    if (!admin && remaining <= 0) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
+    if (simBlock || (!admin && remaining <= 0)) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
 
     setIsAnalyzing(true)
     setError(null)
@@ -138,6 +139,7 @@ export default function AnalyzerPage() {
     try {
       const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
       if (admin) reqHeaders['x-admin-key'] = getAdminKey()
+      if (simBlock) reqHeaders['x-simulate-block'] = 'true'
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: reqHeaders,
@@ -314,14 +316,23 @@ export default function AnalyzerPage() {
 
       <footer className="border-t border-border-default py-4 text-center text-xs text-text-muted">
         <div>Built by <span className="text-text-secondary font-medium">Abrar Tajwar Khan</span></div>
-        <div className="mt-1">
+        <div>
           {admin ? (
-            <button
-              onClick={() => { clearAdminKey(); setAdmin(false); setRemaining(getStoredRemaining()); }}
-              style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: '10px' }}
-            >
-              ✓ Admin active — click to disable
-            </button>
+            <>
+              <button
+                onClick={() => { clearAdminKey(); setAdmin(false); setSimBlock(false); setRemaining(getStoredRemaining()); }}
+                style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: '10px' }}
+              >
+                ✓ Admin active — click to disable
+              </button>
+              <span style={{ color: '#2d3548', fontSize: '10px', margin: '0 4px' }}>|</span>
+              <button
+                onClick={() => setSimBlock(s => !s)}
+                style={{ background: 'none', border: 'none', fontSize: '10px', cursor: 'pointer', color: simBlock ? '#fbbf24' : '#4b5675' }}
+              >
+                {simBlock ? '⚠ Block ON — click to unlock' : '🔒 Simulate IP Block'}
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setShowAdminInput(true)}

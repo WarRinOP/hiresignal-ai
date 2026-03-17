@@ -88,7 +88,7 @@ export default function AnalyzerPage() {
   const [adminCode, setAdminCode] = useState('')
   const [adminError, setAdminError] = useState('')
   const [adminLoading, setAdminLoading] = useState(false)
-  const [simBlock, setSimBlock] = useState(false)
+  const [exhaustedTest, setExhaustedTest] = useState(false)
   const [sessionId] = useState(() => getSessionId())
   const [showModal, setShowModal] = useState(false)
 
@@ -126,11 +126,29 @@ export default function AnalyzerPage() {
     }
   }
 
+  const exhaustSession = async (action: 'exhaust' | 'reset' = 'exhaust') => {
+    const sid = typeof window !== 'undefined' ? (localStorage.getItem('hs_session_id') || sessionId) : sessionId
+    const res = await fetch('/api/admin/exhaust-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': getAdminKey() },
+      body: JSON.stringify({ session_id: sid, action }),
+    })
+    if (res.ok) {
+      if (action === 'exhaust') {
+        setExhaustedTest(true)
+        setRemaining(0)
+      } else {
+        setExhaustedTest(false)
+        setRemaining(999)
+      }
+    }
+  }
+
   const handleSubmit = async () => {
     if (!resumeText.trim()) { setError('Please upload a PDF or paste the resume text.'); return }
     if (!roleTitle.trim()) { setError('Role title is required.'); return }
     if (!jobDescription.trim()) { setError('Job description is required.'); return }
-    if (simBlock || (!admin && remaining <= 0)) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
+    if (!admin && !exhaustedTest && remaining <= 0) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
 
     setIsAnalyzing(true)
     setError(null)
@@ -138,8 +156,8 @@ export default function AnalyzerPage() {
 
     try {
       const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (admin) reqHeaders['x-admin-key'] = getAdminKey()
-      if (simBlock) reqHeaders['x-simulate-block'] = 'true'
+      // Check Block mode: omit admin key so real rate limit code applies
+      if (admin && !exhaustedTest) reqHeaders['x-admin-key'] = getAdminKey()
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: reqHeaders,
@@ -320,17 +338,24 @@ export default function AnalyzerPage() {
           {admin ? (
             <>
               <button
-                onClick={() => { clearAdminKey(); setAdmin(false); setSimBlock(false); setRemaining(getStoredRemaining()); }}
+                onClick={() => { clearAdminKey(); setAdmin(false); setExhaustedTest(false); setRemaining(getStoredRemaining()); }}
                 style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: '10px' }}
               >
-                ✓ Admin active — click to disable
+                ✓ Admin active — disable
               </button>
-              <span style={{ color: '#2d3548', fontSize: '10px', margin: '0 4px' }}>|</span>
+              <span style={{ color: '#2d3548', fontSize: '10px', margin: '0 6px' }}>|</span>
               <button
-                onClick={() => setSimBlock(s => !s)}
-                style={{ background: 'none', border: 'none', fontSize: '10px', cursor: 'pointer', color: simBlock ? '#fbbf24' : '#4b5675' }}
+                onClick={() => exhaustedTest ? exhaustSession('reset') : undefined}
+                style={{ background: 'none', border: 'none', fontSize: '10px', cursor: exhaustedTest ? 'pointer' : 'default', fontWeight: exhaustedTest ? 400 : 700, color: exhaustedTest ? '#4b5675' : '#22c55e', textDecoration: exhaustedTest ? 'none' : 'underline' }}
               >
-                {simBlock ? '⚠ Block ON — click to unlock' : '🔒 Simulate IP Block'}
+                🔓 Unlimited Testing
+              </button>
+              <span style={{ color: '#2d3548', fontSize: '10px', margin: '0 4px' }}>/</span>
+              <button
+                onClick={() => !exhaustedTest ? exhaustSession('exhaust') : undefined}
+                style={{ background: 'none', border: 'none', fontSize: '10px', cursor: !exhaustedTest ? 'pointer' : 'default', fontWeight: !exhaustedTest ? 400 : 700, color: !exhaustedTest ? '#4b5675' : '#f59e0b', textDecoration: !exhaustedTest ? 'none' : 'underline' }}
+              >
+                🔒 Check Block
               </button>
             </>
           ) : (

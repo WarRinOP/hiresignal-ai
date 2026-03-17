@@ -29,3 +29,25 @@ export function setStoredRemaining(n: number): void {
     localStorage.setItem(REMAINING_KEY, String(n))
   }
 }
+
+// ── Admin mode ─────────────────────────────────────
+const ADMIN_KEY = 'hs_admin_key'
+
+export function getAdminKey(): string {
+  if (typeof window === 'undefined') return ''
+  return localStorage.getItem(ADMIN_KEY) || ''
+}
+
+export function setAdminKey(key: string): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(ADMIN_KEY, key)
+}
+
+export function clearAdminKey(): void {
+  if (typeof window === 'undefined') return
+  localStorage.removeItem(ADMIN_KEY)
+}
+
+export function isAdminMode(): boolean {
+  return getAdminKey().length > 0
+}

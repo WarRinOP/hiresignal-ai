@@ -44,6 +44,10 @@ export async function POST(req: NextRequest) {
     req.headers.get('x-real-ip') ||
     'unknown'
 
+  // Admin bypass
+  const adminKey = req.headers.get('x-admin-key') || ''
+  const isAdmin = adminKey && adminKey === process.env.ADMIN_SECRET
+
   // Upsert session row
   const { data: session } = await supabaseAdmin
     .from('hs_sessions')
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
 
   const currentCount = session?.usage_count ?? 0
 
-  if (currentCount >= MAX_ANALYSES) {
+  if (!isAdmin && currentCount >= MAX_ANALYSES) {
     return NextResponse.json(
       {
         error: `You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`,
@@ -76,7 +80,7 @@ export async function POST(req: NextRequest) {
   const totalIpUsage =
     ipSessions?.reduce((sum, s) => sum + (s.usage_count ?? 0), 0) ?? 0
 
-  if (totalIpUsage >= MAX_ANALYSES) {
+  if (!isAdmin && totalIpUsage >= MAX_ANALYSES) {
     return NextResponse.json(
       {
         error: `You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`,
@@ -144,5 +148,5 @@ export async function POST(req: NextRequest) {
     .update({ usage_count: currentCount + 1 })
     .eq('session_id', session_id.trim())
 
-  return NextResponse.json({ ...saved, remaining: newRemaining }, { status: 200 })
+  return NextResponse.json({ ...saved, remaining: isAdmin ? 999 : newRemaining }, { status: 200 })
 }

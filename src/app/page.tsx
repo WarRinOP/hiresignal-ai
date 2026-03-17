@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import type { HsAnalysis } from '@/lib/supabase'
-import { getSessionId, getStoredRemaining, setStoredRemaining, MAX_ANALYSES } from '@/lib/session'
+import { getSessionId, getStoredRemaining, setStoredRemaining, MAX_ANALYSES, getAdminKey, setAdminKey, clearAdminKey, isAdminMode } from '@/lib/session'
 import { HowItWorksModal } from '@/components/HowItWorksModal'
 import ResumeUpload from '@/components/analyzer/ResumeUpload'
 import JobDescInput, { SAMPLE_RESUME, SAMPLE_JD } from '@/components/analyzer/JobDescInput'
@@ -82,7 +82,12 @@ export default function AnalyzerPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<HsAnalysis | null>(null)
-  const [remaining, setRemaining] = useState(() => getStoredRemaining())
+  const [remaining, setRemaining] = useState(() => isAdminMode() ? 999 : getStoredRemaining())
+  const [admin, setAdmin] = useState(() => isAdminMode())
+  const [showAdminInput, setShowAdminInput] = useState(false)
+  const [adminCode, setAdminCode] = useState('')
+  const [adminError, setAdminError] = useState('')
+  const [adminLoading, setAdminLoading] = useState(false)
   const [sessionId] = useState(() => getSessionId())
   const [showModal, setShowModal] = useState(false)
 
@@ -95,20 +100,47 @@ export default function AnalyzerPage() {
     setError(null)
   }
 
+  const verifyAdmin = async () => {
+    setAdminLoading(true)
+    try {
+      const res = await fetch('/api/admin-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: adminCode }),
+      })
+      const data = await res.json()
+      if (data.valid) {
+        setAdminKey(adminCode)
+        setAdmin(true)
+        setRemaining(999)
+        setShowAdminInput(false)
+        setAdminCode('')
+      } else {
+        setAdminError('Invalid code')
+      }
+    } catch {
+      setAdminError('Verification failed')
+    } finally {
+      setAdminLoading(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!resumeText.trim()) { setError('Please upload a PDF or paste the resume text.'); return }
     if (!roleTitle.trim()) { setError('Role title is required.'); return }
     if (!jobDescription.trim()) { setError('Job description is required.'); return }
-    if (remaining <= 0) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
+    if (!admin && remaining <= 0) { setError(`You've used all ${MAX_ANALYSES} free analyses. This is a portfolio demo — reach out for unlimited access!`); return }
 
     setIsAnalyzing(true)
     setError(null)
     setResult(null)
 
     try {
+      const reqHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (admin) reqHeaders['x-admin-key'] = getAdminKey()
       const res = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: reqHeaders,
         body: JSON.stringify({
           candidateName: candidateName.trim() || undefined,
           resumeText: resumeText.trim(),
@@ -281,8 +313,59 @@ export default function AnalyzerPage() {
       </div>
 
       <footer className="border-t border-border-default py-4 text-center text-xs text-text-muted">
-        Built by <span className="text-text-secondary font-medium">Abrar Tajwar Khan</span>
+        <div>Built by <span className="text-text-secondary font-medium">Abrar Tajwar Khan</span></div>
+        <div className="mt-1">
+          {admin ? (
+            <button
+              onClick={() => { clearAdminKey(); setAdmin(false); setRemaining(getStoredRemaining()); }}
+              style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', fontSize: '10px' }}
+            >
+              ✓ Admin active — click to disable
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAdminInput(true)}
+              style={{ background: 'none', border: 'none', color: '#2d3548', cursor: 'pointer', fontSize: '10px' }}
+            >
+              Admin
+            </button>
+          )}
+        </div>
       </footer>
+
+      {showAdminInput && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+          onClick={() => { setShowAdminInput(false); setAdminError(''); setAdminCode(''); }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#0f1117', border: '1px solid #1a1f2e', borderRadius: '14px', padding: '24px', maxWidth: '380px', width: '100%' }}
+          >
+            <p style={{ fontSize: '14px', fontWeight: 600, color: '#e2e8f0', marginBottom: '6px' }}>Are you the developer?</p>
+            <p style={{ fontSize: '12px', color: '#475569', marginBottom: '16px' }}>Enter the secret code you set for unlimited testing.</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="password"
+                value={adminCode}
+                onChange={(e) => { setAdminCode(e.target.value); setAdminError(''); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') verifyAdmin(); }}
+                placeholder="Secret code"
+                autoFocus
+                style={{ flex: 1, padding: '10px 14px', background: '#1a1f2e', border: '1px solid #252d3d', borderRadius: '8px', color: '#e2e8f0', fontSize: '13px' }}
+              />
+              <button
+                onClick={verifyAdmin}
+                disabled={!adminCode.trim() || adminLoading}
+                style={{ padding: '10px 18px', background: '#818cf8', border: 'none', borderRadius: '8px', color: '#0f1117', fontWeight: 600, cursor: 'pointer', fontSize: '13px', opacity: (!adminCode.trim() || adminLoading) ? 0.5 : 1 }}
+              >
+                {adminLoading ? '...' : 'Verify'}
+              </button>
+            </div>
+            {adminError && <p style={{ fontSize: '12px', color: '#ef4444', marginTop: '8px' }}>{adminError}</p>}
+          </div>
+        </div>
+      )}
 
       <ToastContainer />
       {showModal && <HowItWorksModal onClose={() => setShowModal(false)} />}

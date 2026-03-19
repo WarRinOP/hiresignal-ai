@@ -3,9 +3,12 @@
 > Match resumes to job descriptions instantly.  
 > Get scores, skills gaps, and improvements powered by Claude AI.
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black?logo=vercel)](https://hiresignal-ai.vercel.app)
+[![GitHub](https://img.shields.io/badge/GitHub-WarRinOP%2Fhiresignal--ai-blue?logo=github)](https://github.com/WarRinOP/hiresignal-ai)
+
 ## Live Demo
 
-[Deploy to Vercel to get your URL]
+**[https://hiresignal-ai.vercel.app](https://hiresignal-ai.vercel.app)**
 
 ## Screenshots
 
